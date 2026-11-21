@@ -129,6 +129,11 @@ export function DoctorPanel({ user }: DoctorPanelProps) {
   const calledPatient = myAppointments.find((a) => a.status === 'called');
   const inAttendance = myAppointments.find((a) => a.status === 'in-attendance');
 
+  // Pacientes con cita para hoy que aún no hacen check-in
+  const scheduledToday = myAppointments
+    .filter((a) => a.status === 'scheduled' && a.scheduledDate === todayStr)
+    .sort((a, b) => (a.scheduledTime || '').localeCompare(b.scheduledTime || ''));
+
   const attendedToday = myAppointments.filter(
     (a) => a.status === 'attended' && (a.scheduledDate === todayStr || a.scheduledDate === undefined),
   );
@@ -405,23 +410,24 @@ export function DoctorPanel({ user }: DoctorPanelProps) {
         </button>
       )}
 
-      {/* Appointment list — hidden after 5:00 PM */}
+      {/* Waiting room sections — hidden after 5:00 PM */}
       {!pastCutoff && (
       <div className="mb-4">
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold text-slate-700 flex items-center gap-2">
             <Users className="w-4 h-4 text-blue-700" />
-            Citas de hoy
+            Sala de Espera
             <span className="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-0.5 rounded-full">
-              {waitingPatients.length}
+              {waitingPatients.length + (inAttendance ? 1 : 0) + (calledPatient ? 1 : 0)}
             </span>
           </h3>
         </div>
 
+        {/* En espera (con check-in) */}
         {waitingPatients.length === 0 ? (
-          <div className="bg-white rounded-2xl p-8 text-center border border-slate-100">
-            <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto mb-2" />
-            <p className="text-slate-500 text-sm">No hay pacientes en espera para hoy.</p>
+          <div className="bg-white rounded-2xl p-6 text-center border border-slate-100">
+            <CheckCircle2 className="w-9 h-9 text-emerald-400 mx-auto mb-2" />
+            <p className="text-slate-500 text-sm">Nadie está en espera con check-in.</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -434,6 +440,27 @@ export function DoctorPanel({ user }: DoctorPanelProps) {
                 onClick={() => setSelectedAppt(apt)}
               />
             ))}
+          </div>
+        )}
+
+        {/* Pendientes de check-in (cita para hoy) */}
+        {scheduledToday.length > 0 && (
+          <div className="mt-5">
+            <h4 className="font-semibold text-slate-500 text-xs uppercase tracking-wide mb-2 flex items-center gap-1.5">
+              <CalendarClock className="w-3.5 h-3.5 text-slate-400" />
+              Pendientes de check-in ({scheduledToday.length})
+            </h4>
+            <div className="space-y-2">
+              {scheduledToday.map((apt) => (
+                <AppointmentRow
+                  key={apt.id}
+                  apt={apt}
+                  position={0}
+                  isNext={false}
+                  onClick={() => setSelectedAppt(apt)}
+                />
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -491,16 +518,17 @@ interface AppointmentRowProps {
 }
 
 function AppointmentRow({ apt, isNext, onClick }: AppointmentRowProps) {
+  const isScheduled = apt.status === 'scheduled';
   return (
     <div
       onClick={onClick}
       className={`bg-white rounded-xl p-3 flex items-center gap-3 border transition-all animate-slide-in cursor-pointer hover:border-blue-200 hover:shadow-sm ${
         isNext ? 'border-blue-400 ring-1 ring-blue-100' : 'border-slate-100'
-      }`}
+      } ${isScheduled ? 'opacity-75' : ''}`}
     >
       <div
         className={`w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0 ${
-          isNext ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-500'
+          isNext ? 'bg-blue-700 text-white' : isScheduled ? 'bg-slate-50 text-slate-400' : 'bg-slate-100 text-slate-500'
         }`}
       >
         {String(apt.ticketNumber).padStart(2, '0')}
@@ -509,8 +537,20 @@ function AppointmentRow({ apt, isNext, onClick }: AppointmentRowProps) {
         <p className="text-sm font-medium text-slate-800 truncate">{apt.patientName}</p>
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs text-slate-400 flex items-center gap-1">
+            <CreditCard className="w-3 h-3" /> CC {apt.patientCedula}
+          </span>
+          <span className="text-xs text-slate-400 flex items-center gap-1">
             <Clock className="w-3 h-3" /> {apt.scheduledTime}
           </span>
+          {!isScheduled && (apt.checkinMethod === 'code' ? (
+            <span className="text-[10px] font-semibold text-teal-700 bg-teal-50 px-1.5 py-0.5 rounded flex items-center gap-1">
+              <Lock className="w-2.5 h-2.5" /> Código
+            </span>
+          ) : (
+            <span className="text-[10px] font-semibold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded flex items-center gap-1">
+              <MapPin className="w-2.5 h-2.5" /> GPS{apt.gpsDistance !== undefined ? ` ${apt.gpsDistance}m` : ''}
+            </span>
+          ))}
           {apt.status === 'rescheduled' && (
             <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">
               REAGENDADO

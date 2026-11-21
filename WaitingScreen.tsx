@@ -50,6 +50,16 @@ export function WaitingScreen({ user }: WaitingScreenProps) {
   const countdownRemaining = isCalled && data.countdownEndsAt
     ? Math.max(0, Math.floor((data.countdownEndsAt - now) / 1000))
     : 0;
+
+  // Turno en atención ahora (de otro paciente): solo número de turno, nunca datos personales
+  const nowServing = data.currentCalledId
+    ? data.appointments.find((a) => a.id === data.currentCalledId)
+    : undefined;
+  const nowServingIsMine = nowServing?.patientCedula === user.cedula;
+  const nowServingCountdown = nowServing?.status === 'called' && data.countdownEndsAt
+    ? Math.max(0, Math.floor((data.countdownEndsAt - now) / 1000))
+    : 0;
+  const showServingCard = nowServing && !nowServingIsMine && (nowServing.status === 'called' || nowServing.status === 'in-attendance');
   const countdownProgress = isCalled
     ? ((COUNTDOWN_SECONDS - countdownRemaining) / COUNTDOWN_SECONDS) * 100
     : 0;
@@ -121,6 +131,29 @@ export function WaitingScreen({ user }: WaitingScreenProps) {
             <Volume2 className="w-3.5 h-3.5" />
             Tienes {formatCountdown(countdownRemaining)} para presentarte
           </p>
+        </div>
+      )}
+
+      {/* Ahora en consulta (turno de otro paciente) — solo número, sin datos personales */}
+      {showServingCard && nowServing && (
+        <div className={`rounded-2xl p-4 shadow-md mb-4 text-white text-center animate-slide-up ${
+          nowServing.status === 'called'
+            ? 'bg-gradient-to-br from-orange-500 to-amber-500'
+            : 'bg-gradient-to-br from-emerald-500 to-teal-600'
+        }`}>
+          <p className="text-xs font-semibold uppercase tracking-wide text-white/80 mb-1 flex items-center justify-center gap-1.5">
+            {nowServing.status === 'called' ? <Bell className="w-3.5 h-3.5" /> : <Stethoscope className="w-3.5 h-3.5" />}
+            {nowServing.status === 'called' ? 'Llamando al turno' : 'En consulta ahora'}
+          </p>
+          <div className="text-4xl font-extrabold tracking-tight">
+            #{String(nowServing.ticketNumber).padStart(2, '0')}
+          </div>
+          {nowServing.status === 'called' && (
+            <p className="text-white/85 text-xs mt-1.5 flex items-center justify-center gap-1.5">
+              <Timer className="w-3.5 h-3.5" />
+              Tienes {formatCountdown(nowServingCountdown)} hasta que te llamen
+            </p>
+          )}
         </div>
       )}
 
@@ -272,34 +305,37 @@ export function WaitingScreen({ user }: WaitingScreenProps) {
             Fila actual
           </p>
           <div className="space-y-2">
-            {waitingPatients.slice(0, 6).map((p) => (
-              <div
-                key={p.id}
-                className={`flex items-center gap-3 p-2 rounded-lg ${
-                  p.patientCedula === user.cedula ? 'bg-blue-50' : ''
-                }`}
-              >
+            {waitingPatients.slice(0, 6).map((p) => {
+              const isMe = p.patientCedula === user.cedula;
+              return (
                 <div
-                  className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${
-                    p.patientCedula === user.cedula
-                      ? 'bg-blue-700 text-white'
-                      : 'bg-slate-100 text-slate-500'
+                  key={p.id}
+                  className={`flex items-center gap-3 p-2 rounded-lg ${
+                    isMe ? 'bg-blue-50' : ''
                   }`}
                 >
-                  {String(p.ticketNumber).padStart(2, '0')}
+                  <div
+                    className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${
+                      isMe
+                        ? 'bg-blue-700 text-white'
+                        : 'bg-slate-100 text-slate-500'
+                    }`}
+                  >
+                    {String(p.ticketNumber).padStart(2, '0')}
+                  </div>
+                  <span
+                    className={`text-sm ${
+                      isMe ? 'font-semibold text-blue-800' : 'text-slate-500'
+                    }`}
+                  >
+                    {isMe ? 'Tú' : `Turno ${String(p.ticketNumber).padStart(2, '0')}`}
+                    {p.status === 'rescheduled' && (
+                      <span className="text-amber-500 text-xs ml-1.5">(Reagendado)</span>
+                    )}
+                  </span>
                 </div>
-                <span
-                  className={`text-sm ${
-                    p.patientCedula === user.cedula ? 'font-semibold text-blue-800' : 'text-slate-600'
-                  }`}
-                >
-                  {p.patientCedula === user.cedula ? 'Tú' : p.patientName}
-                  {p.status === 'rescheduled' && (
-                    <span className="text-amber-500 text-xs ml-1.5">(Reagendado)</span>
-                  )}
-                </span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
