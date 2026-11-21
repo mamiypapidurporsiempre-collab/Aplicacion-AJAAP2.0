@@ -15,6 +15,9 @@ import {
   Timer,
   DoorClosed,
   XCircle,
+  HelpCircle,
+  VolumeX,
+  ChevronRight,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useGeolocation } from '../../hooks/useGeolocation';
@@ -25,6 +28,8 @@ import { getOfficialTurn, getTurnsAhead } from '../../lib/queueTurns';
 import { useCalledTurnAlert } from '../../hooks/useCalledTurnAlert';
 import { useCalledVibration } from '../../hooks/useCalledVibration';
 import { useNotificationSound } from '../../hooks/useSound';
+import { useNotificationPermission } from '../../hooks/useNotificationPermission';
+import { PatientTutorial } from './PatientTutorial';
 import { CheckInByCode } from './CheckInByCode';
 import { QrCode, Hash } from 'lucide-react';
 import { useCheckinActive } from '../../hooks/useCheckinActive';
@@ -80,6 +85,9 @@ export function MyAppointments({ user, onCheckedIn }: MyAppointmentsProps) {
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
   const [cancelError, setCancelError] = useState('');
   const [cancelSuccess, setCancelSuccess] = useState('');
+  const [alertMuted, setAlertMuted] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
+  const { permission: notifPermission, request: requestNotifPermission } = useNotificationPermission();
 
   const todayStr = toLocalDateStr(new Date(now));
   const scheduledAppts = getMyScheduledAppointments(user.cedula);
@@ -121,11 +129,18 @@ export function MyAppointments({ user, onCheckedIn }: MyAppointmentsProps) {
   const calledKey = currentCall ? `${currentCall.id}-${currentCall.calledAt}` : null;
   const calledTurn = currentCall ? getOfficialTurn(currentCall, data.appointments) : null;
   const alertTurn = useCalledTurnAlert(calledKey, calledTurn);
-  useCalledVibration(!!isCalled);
+  useCalledVibration(!!isCalled, alertMuted);
 
+  // Repite la alarma mientras el paciente siga llamado (hasta 5 min), salvo silencio
   useEffect(() => {
-    if (isCalled) playAlert();
-  }, [isCalled, playAlert]);
+    if (!isCalled || alertMuted) return;
+    playAlert();
+    const interval = setInterval(() => {
+      if (getCallRemainingSeconds(activeAppt?.calledAt, Date.now()) > 0) playAlert();
+    }, 5000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isCalled, alertMuted, playAlert]);
 
   const handleCheckIn = async () => {
     if (!geoOk || result.distance === null) {
@@ -212,6 +227,37 @@ export function MyAppointments({ user, onCheckedIn }: MyAppointmentsProps) {
         </div>
       )}
 
+      {/* Aviso de permiso de notificaciones rechazado */}
+      {notifPermission === 'denied' && (
+        <div className="rounded-2xl p-4 bg-amber-50 border border-amber-200 flex items-start gap-2.5 animate-slide-up">
+          <Bell className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold text-amber-800 text-sm">Notificaciones desactivadas</p>
+            <p className="text-xs text-amber-700 mt-0.5">
+              Las notificaciones son necesarias para avisarte cuando llegue tu turno. Actívalas en la
+              configuración de tu navegador para no perderte el llamado.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Tutorial */}
+      <button
+        onClick={() => setShowTutorial(true)}
+        className="w-full rounded-2xl p-4 bg-white border border-slate-100 shadow-sm flex items-center gap-3 hover:border-blue-200 hover:shadow transition-all animate-slide-up text-left"
+      >
+        <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+          <HelpCircle className="w-5 h-5 text-blue-700" />
+        </div>
+        <div className="flex-1">
+          <p className="font-semibold text-slate-800 text-sm">¿Primera vez aquí? Ver tutorial</p>
+          <p className="text-xs text-slate-500 mt-0.5">Guía paso a paso para agendar, hacer check-in y esperar tu turno.</p>
+        </div>
+        <ChevronRight className="w-4 h-4 text-slate-300" />
+      </button>
+
+      {showTutorial && <PatientTutorial onClose={() => setShowTutorial(false)} />}
+
       {/* Called alert — if patient was called */}
       {isCalled && (
         <div className="bg-gradient-to-br from-red-500 to-rose-600 rounded-3xl p-6 shadow-xl shadow-red-200 text-white text-center animate-bounce-in">
@@ -229,6 +275,16 @@ export function MyAppointments({ user, onCheckedIn }: MyAppointmentsProps) {
               {formatCountdown(countdownRemaining)}
             </span>
           </div>
+          {!alertMuted && (
+            <button
+              onClick={() => setAlertMuted(true)}
+              className="mt-1 inline-flex items-center gap-2 bg-white/20 hover:bg-white/30 active:scale-[0.98] transition-all
+                         text-white font-semibold text-sm px-5 py-2.5 rounded-xl"
+            >
+              <VolumeX className="w-4 h-4" />
+              Entendido / Silenciar
+            </button>
+          )}
         </div>
       )}
 
@@ -432,9 +488,9 @@ export function MyAppointments({ user, onCheckedIn }: MyAppointmentsProps) {
             <div className="w-14 h-14 rounded-2xl bg-rose-50 flex items-center justify-center mx-auto mb-4">
               <XCircle className="w-7 h-7 text-rose-500" />
             </div>
-            <h3 className="font-bold text-slate-800 text-lg mb-2">¿Cancelar esta cita?</h3>
+            <h3 className="font-bold text-slate-800 text-lg mb-2">¿Está seguro de cancelar la cita?</h3>
             <p className="text-sm text-slate-500 mb-6">
-              Esta acción no se puede deshacer. Se notificará a secretaría y al médico.
+              Recuerde que para agendarla nuevamente tiene que dirigirse con secretaría.
             </p>
             <div className="flex gap-3">
               <button
