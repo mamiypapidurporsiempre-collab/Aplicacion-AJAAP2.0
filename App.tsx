@@ -9,17 +9,19 @@ import { AdminPanel } from './components/admin/AdminPanel';
 import { SecretaryPanel } from './components/secretary/SecretaryPanel';
 import { TvScreen } from './components/tv/TvScreen';
 import { TvCodesScreen } from './components/tv/TvCodesScreen';
+import { TvTurnosScreen } from './components/tv/TvTurnosScreen';
 import { UpdateBanner } from './components/UpdateBanner';
 import { InteractiveBackground } from './components/InteractiveBackground';
 import type { Role } from './types';
 
-function useRoute(): 'pantalla' | 'tv-codes' | null {
-  const [route, setRoute] = useState<'pantalla' | 'tv-codes' | null>(null);
+function useRoute(): 'pantalla' | 'tv-codes' | 'tv-turnos' | null {
+  const [route, setRoute] = useState<'pantalla' | 'tv-codes' | 'tv-turnos' | null>(null);
   useEffect(() => {
     const check = () => {
       const path = window.location.pathname;
       if (path.startsWith('/pantalla')) setRoute('pantalla');
       else if (path.startsWith('/tv-codes')) setRoute('tv-codes');
+      else if (path.startsWith('/tv-turnos')) setRoute('tv-turnos');
       else setRoute(null);
     };
     check();
@@ -284,6 +286,14 @@ function App() {
     return (
       <AppErrorBoundary>
         <TvCodesScreen />
+      </AppErrorBoundary>
+    );
+  }
+
+  if (route === 'tv-turnos') {
+    return (
+      <AppErrorBoundary>
+        <TvTurnosScreen />
       </AppErrorBoundary>
     );
   }
