@@ -10,6 +10,7 @@ import { SecretaryPanel } from './components/secretary/SecretaryPanel';
 import { TvScreen } from './components/tv/TvScreen';
 import { TvCodesScreen } from './components/tv/TvCodesScreen';
 import { TvTurnosScreen } from './components/tv/TvTurnosScreen';
+import { TvAccessGate, isTvUnlocked } from './components/tv/TvAccessGate';
 import { UpdateBanner } from './components/UpdateBanner';
 import { InteractiveBackground } from './components/InteractiveBackground';
 import type { Role } from './types';
@@ -271,13 +272,24 @@ function WhatsAppFloatingButton() {
   );
 }
 
+function TvRoute({ screenName, children }: { screenName: string; children: React.ReactNode }) {
+  const [unlocked, setUnlocked] = useState(() => isTvUnlocked());
+
+  if (!unlocked) {
+    return <TvAccessGate screenName={screenName} onUnlocked={() => setUnlocked(true)} />;
+  }
+  return <>{children}</>;
+}
+
 function App() {
   const route = useRoute();
 
   if (route === 'pantalla') {
     return (
       <AppErrorBoundary>
-        <TvScreen />
+        <TvRoute screenName="Pantalla TV">
+          <TvScreen />
+        </TvRoute>
       </AppErrorBoundary>
     );
   }
@@ -285,7 +297,9 @@ function App() {
   if (route === 'tv-codes') {
     return (
       <AppErrorBoundary>
-        <TvCodesScreen />
+        <TvRoute screenName="Códigos de Check-in">
+          <TvCodesScreen />
+        </TvRoute>
       </AppErrorBoundary>
     );
   }
@@ -293,7 +307,9 @@ function App() {
   if (route === 'tv-turnos') {
     return (
       <AppErrorBoundary>
-        <TvTurnosScreen />
+        <TvRoute screenName="TV-Turnos">
+          <TvTurnosScreen />
+        </TvRoute>
       </AppErrorBoundary>
     );
   }

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CreditCard, ArrowRight, AlertCircle, Loader2, MapPin, Eye, EyeOff, Tv, MonitorPlay, Hash } from 'lucide-react';
+import { CreditCard, ArrowRight, AlertCircle, Loader2, MapPin, Eye, EyeOff } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { AppLogoMark } from './FastyTurnLogo';
 
@@ -110,21 +110,6 @@ export function LoginScreen() {
           )}
         </button>
       </form>
-
-      {/* Acceso a pantallas de TV (sala de espera) */}
-      <div className="mt-6 flex items-center justify-center gap-4 text-xs text-slate-400">
-        <a href="/pantalla" className="inline-flex items-center gap-1.5 hover:text-blue-700 transition-colors">
-          <Tv className="w-3.5 h-3.5" /> Pantalla TV
-        </a>
-        <span className="text-slate-300">·</span>
-        <a href="/tv-turnos" className="inline-flex items-center gap-1.5 hover:text-blue-700 transition-colors">
-          <MonitorPlay className="w-3.5 h-3.5" /> TV-Turnos
-        </a>
-        <span className="text-slate-300">·</span>
-        <a href="/tv-codes" className="inline-flex items-center gap-1.5 hover:text-blue-700 transition-colors">
-          <Hash className="w-3.5 h-3.5" /> TV-Códigos
-        </a>
-      </div>
 
     </div>
   );

@@ -1,12 +1,10 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { Lock, Hash, Clock, Maximize2, LogOut, Loader2, AlertTriangle, DoorClosed } from 'lucide-react';
+import { Hash, Clock, Maximize2, LogOut, Loader2, AlertTriangle, DoorClosed } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useCheckinActive } from '../../hooks/useCheckinActive';
 import { AppLogoMark } from '../FastyTurnLogo';
-
-const ACCESS_CODE = '05062023';
-const STORAGE_KEY = 'tv-codes-auth';
+import { TV_ACCESS_STORAGE_KEY } from './TvAccessGate';
 
 interface DbCheckinCode {
   pin: string;
@@ -16,88 +14,7 @@ interface DbCheckinCode {
 }
 
 export function TvCodesScreen() {
-  const [authed, setAuthed] = useState(false);
-  const [code, setCode] = useState('');
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    const saved = sessionStorage.getItem(STORAGE_KEY);
-    if (saved === ACCESS_CODE) setAuthed(true);
-  }, []);
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (code.trim() === ACCESS_CODE) {
-      sessionStorage.setItem(STORAGE_KEY, ACCESS_CODE);
-      setAuthed(true);
-      setError('');
-    } else {
-      setError('Clave incorrecta. Acceso denegado.');
-    }
-  };
-
-  if (!authed) {
-    return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center px-6">
-        <div className="w-full max-w-sm">
-          <div className="flex flex-col items-center mb-6">
-            <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-white/10 ring-1 ring-white/10 mb-4">
-              <AppLogoMark size={40} className="" />
-            </div>
-            <h1 className="text-xl font-extrabold text-white">Vista Previa de Códigos</h1>
-            <p className="text-sm text-slate-400 mt-1">Ingresa la clave de acceso para continuar</p>
-          </div>
-
-          <form
-            onSubmit={handleLogin}
-            className="bg-slate-800/50 rounded-2xl p-6 border border-slate-700 space-y-4"
-          >
-            <div>
-              <label className="text-sm font-medium text-slate-300 mb-1.5 block">
-                Clave de acceso
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-                <input
-                  type="password"
-                  inputMode="numeric"
-                  value={code}
-                  onChange={(e) => {
-                    setCode(e.target.value);
-                    setError('');
-                  }}
-                  placeholder="••••••••"
-                  autoFocus
-                  className="w-full pl-11 pr-4 py-3 rounded-xl bg-slate-900 border border-slate-700
-                             focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20
-                             outline-none transition-all text-white text-lg tracking-wider font-mono"
-                />
-              </div>
-            </div>
-
-            {error && (
-              <p className="text-sm text-red-400 flex items-center gap-1.5">
-                <AlertTriangle className="w-4 h-4" />
-                {error}
-              </p>
-            )}
-
-            <button
-              type="submit"
-              className="w-full bg-blue-600 text-white font-semibold py-3.5 rounded-xl
-                         hover:bg-blue-700 active:scale-[0.98] transition-all
-                         flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20"
-            >
-              <Lock className="w-5 h-5" />
-              Ingresar
-            </button>
-          </form>
-        </div>
-      </div>
-    );
-  }
-
-  return <TvCodesPreview onLogout={() => { sessionStorage.removeItem(STORAGE_KEY); setAuthed(false); setCode(''); }} />;
+  return <TvCodesPreview onLogout={() => { sessionStorage.removeItem(TV_ACCESS_STORAGE_KEY); window.location.reload(); }} />;
 }
 
 function TvCodesPreview({ onLogout }: { onLogout: () => void }) {
