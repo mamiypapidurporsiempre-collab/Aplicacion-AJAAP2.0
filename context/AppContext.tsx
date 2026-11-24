@@ -828,6 +828,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         end_hour: '12:00',
         daily_capacity: 10,
       }).then(() => {});
+      // Seed default weekday availability so Secretaría sees green days
+      // immediately, without waiting for the doctor to open their calendar.
+      await ensureWeekdaysScheduled(user.cedula, 6, true);
     }
 
     await loadData();
